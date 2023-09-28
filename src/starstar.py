@@ -10,8 +10,7 @@ class StellarStructure():
 
     def __init__(self, Msolar, Lsolar, Te, X, Z):
 
-
-        
+ 
         """ Constrcutor con los parámetros de la estrella """
 
         # Características de la estrella
@@ -21,10 +20,6 @@ class StellarStructure():
         self.X = X                # Fracción de hidrogeno (adimensional)
         self.Z = Z                # Fracción de metales (adimensional)
         self.Y = 1.0e0 - X - Z    # Fracción de helio (adimensional)
-
-        # Validamos las fracciones X y Z
-        if(self.y < 0):
-            print("Las fracciones de hidrogeno X y de metales Z no son válidas")
 
         # deltar = radius integration step
         # idrflg = set size flag
@@ -125,6 +120,116 @@ class StellarStructure():
 
     
     def main(self):
+
+        # FORMATO PARA LA IMPRESIÓN DE MENSAJES
+
+        def formato100():
+            formato = "Las fracciones de hidrogeno X y de metales Z no son válidas"
+            print(formato)
+
+        def formato200():
+            formato = """The variation in mass has become larger than 0.001*Ms leaving the approximation loop before Nstart was reached"""
+            print(formato)
+
+        def formato300():
+            formato = """The problem occurred in the Runge-Kutta routine"""
+            print(formato)
+
+        def formato400(r, rho, M_r, kappa, T, epsilon, P, L_r, Rs, Ms, Ls):
+            formato = f"""Values from the previous zone are:
+                         r/Rs    = {r/Rs}
+                         rho     = {rho} g/cm**3 
+                         M_r/Ms  = {M_r/Ms} 
+                         kappa   = {kappa} cm**2/g
+                         T       = {T} K
+                         epsilon = {epsilon} ergs/g/s
+                         P       = {P} dynes/cm**2',/,
+                         L_r/Ls  = {L_r/Ls}"""
+            print(formato)
+
+        def formato1000():
+            formato = """A Homogeneous Main-Sequence Model"""
+            print(formato)
+
+        def formato2000(Msolar, Mcrat, Rsolar, Rcrat, Lsolar, Lcrat, Te,
+            rhocor, X, Tcore, Y, Pcore, Z, epscor, dlpdlt, istop):
+            formato = f"""The surface conditions are:          The central conditions are:
+            Mtot = {Msolar} Msun            Mc/Mtot     = {Mcrat}
+            Rtot = {Rsolar} Rsun            Rc/Rtot     = {Rcrat}
+            Ltot = {Lsolar} Lsun            Lc/Ltot     = {Lcrat}
+            Teff = {Te} K                   Density     = {rhocor} g/cm**3
+            X    = {X}                      Temperature = {Tcore} K
+            Y    = {Y}                      Pressure    = {Pcore} dynes/cm**2
+            Z    = {Z}                      epsilon     = {epscor} ergs/s/g
+                                            dlnP/dlnT   = {dlpdlt}"""
+            print(formato)
+
+        def formato2500():
+            formato = """"""
+            print(formato)
+
+        def formato3000():
+            formato = """"""
+            print(formato)    
+
+        def formato4000():
+            formato = """"""
+            print(formato) 
+
+        def formato5000():
+            formato = """"""
+            print(formato)
+
+        def formato5100():
+            formato = """"""
+            print(formato)
+
+        def formato5200():
+            formato = """"""
+            print(formato) 
+
+        def formato5300():
+            formato = """"""
+            print(formato)
+
+        def formato5400():
+            formato = """"""
+            print(formato)
+
+        def formato5500():
+            formato = """"""
+            print(formato)
+
+        def formato5600():
+            formato = """"""
+            print(formato)
+
+        def formato5700():
+            formato = """"""
+            print(formato)
+
+        def formato5800():
+            formato = """"""
+            print(formato)   
+
+        def formato6000():
+            formato = """"""
+            print(formato)
+
+        def formato7000():
+            formato = """"""
+            print(formato)
+
+        def formato9000():
+            formato = """"""
+            print(formato)                                     
+
+
+        # PROGRAMA PRINCIPAL
+
+        # Validamos las fracciones X y Z
+        if(self.Y < 0):
+            formato100()
 
         N = self.size
 
