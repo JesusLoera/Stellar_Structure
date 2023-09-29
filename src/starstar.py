@@ -164,64 +164,65 @@ class StellarStructure():
                                             dlnP/dlnT   = {dlpdlt}"""
             print(formato)
 
-        def formato2500():
-            formato = """"""
+        def formato2500(Ms):
+            formato = f"""Notes:
+            (1) Mass is listed as Qm = 1.0 - M_r/Mtot, where Mtot = {Ms} g
+            (2) Convective zones are indicated by c, radiative zones by r
+            (3) dlnP/dlnT may be limited to +99.9 or -99.9; if so it is labeled by *)"""
             print(formato)
 
-        def formato3000():
-            formato = """"""
-            print(formato)    
-
         def formato4000():
-            formato = """"""
+            formato = """Sorry to be the bearer of bad news, but... Your model has some problems"""
             print(formato) 
 
         def formato5000():
-            formato = """"""
+            formato = """The number of allowed shells has been exceeded"""
             print(formato)
 
         def formato5100():
             formato = """"""
             print(formato)
 
-        def formato5200():
-            formato = """"""
+        def formato5200(rho, istop):
+            formato = f"""The core density seems a bit off,density should increase smoothly toward the center.The density of the last zone calculated was rho = {rho} gm/cm**3"""
             print(formato) 
 
         def formato5300():
-            formato = """"""
+            formato = """It looks like you will need a degenerate neutron gas and general relativity to solve this core.  Who do you think I am, Einstein?"""
             print(formato)
 
-        def formato5400():
-            formato = """"""
+        def formato5400(epsilon, istop):
+            formato = f"""The core epsilon seems a bit off epsilon should vary smoothly near the center. The value calculated for the last zone was eps = {epsilon} ergs/g/s"""
             print(formato)
 
-        def formato5500():
-            formato = """"""
+        def formato5500(T, istop):
+            formato = f"""Your extrapolated central temperature is too low a little more fine tuning ought to do it.
+            The value calculated for the last zone was T = {T} K"""
             print(formato)
 
         def formato5600():
-            formato = """"""
+            formato = """You created a star with a hole in the center!"""
             print(formato)
 
         def formato5700():
-            formato = """"""
-            print(formato)
+            formato = """This star has a negative central luminosity!"""
+            print(formato) 
 
         def formato5800():
-            formato = """"""
-            print(formato)   
+            formato = """You hit the center before the mass and/or luminosity were depleted!"""
+            print(formato)
 
         def formato6000():
-            formato = """"""
+            formato = """It looks like you are getting close, however, there are still a few minor errors"""
             print(formato)
 
         def formato7000():
-            formato = """"""
+            formato = """CONGRATULATIONS, I THINK YOU FOUND IT! However, be sure to look at your model carefully."""
             print(formato)
 
         def formato9000():
-            formato = """"""
+            formato = """***** The integration has been completed *****
+            The model has been stored in starmodl.dat'"""
             print(formato)                                     
 
 
