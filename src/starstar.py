@@ -11,7 +11,7 @@ class StellarStructure():
     def __init__(self, Msolar, Lsolar, Te, X, Z, nsh=999):
 
  
-        """ Constrcutor con los parámetros de la estrella """
+        """ Constructor con los parámetros de la estrella """
 
         # Características de la estrella
         self.Msolar = Msolar      # Masa (unidades solares)
@@ -179,16 +179,91 @@ class StellarStructure():
 
         return r,P_ip1, M_rip1, L_rip1, T_ip1
 
+    #  The following four function subprograms calculate the gradients of pressure, mass, luminosity, and temperature at r.
+
+    def dPdr(self, r, M_r, rho):
+        return -self.G*rho*M_r/r**2
+    
+    def dMdr(self, r, rho):
+        return (4.0e0*np.pi*rho*r**2)
+
+    def dTdr(self, r, M_r, L_r, T, rho, kappa, irc):
+        if (irc == 0):
+            return (-(3.0e0/(16.0e0*np.pi*self.a*self.c))*kappa*rho/T**3*L_r/r**2)
+        #  This is the adiabatic convective temperature gradient (Prialnik Eq. 6.29 or C&O Eq. 10.81).
+        else:
+            return (-1.0e0/self.gamrat*self.G*M_r/r**2*self.mu*self.m_H/self.k_B)
+        
+    #      Subroutine FUNDEQ(r, f, irc, X, Z, XCNO, mu, izone,cst)
+
+    def FUNDEQ(self, r, f, irc, izone):
+
+        dfdr=np.zeros(4)
+        P   = f[0]
+        M_r = f[1]
+        L_r = f[2]
+        T   = f[3]
+        rho, kappa, epsilon, tog_bf, ierr = self.EOS(P, T, izone)
+        dfdr[0] = self.dPdr(r, M_r, rho)
+        dfdr[1] = self.dMdr(r, rho)
+        dfdr[2] = self.dLdr(r, rho, epsilon)
+        dfdr[3] = self.dTdr(r, M_r, L_r, T, rho, kappa, irc)
+        return (dfdr,ierr)
 
 
- 
+    #
+    # Runge-kutta algorithm
+    #
+    def RUNGE(self, f_im1, dfdr, r_im1, deltar, irc, izone):
 
+        f_temp=np.zeros(4)
+        f_i=np.zeros(4)
+
+        dr12 = deltar/2.0e0
+        dr16 = deltar/6.0e0
+        r12  = r_im1 + dr12
+        r_i  = r_im1 + deltar
+
+        #  Calculate intermediate derivatives from the four fundamental stellar
+        #  structure equations found in Subroutine FUNDEQ.
+
+        for i in range(0,4):
+            f_temp[i] = f_im1[i] + dr12*dfdr[i]
+
+        df1, ierr = self.FUNDEQ(r12, f_temp, irc, izone)
+        if (ierr != 0):
+            return f_i,ierr
+    #
+
+        for i in range(0,4):
+            f_temp[i] = f_im1[i] + dr12*df1[i]
+
+        df2, ierr = self.FUNDEQ(r12, f_temp, irc, izone)
+
+        if (ierr != 0):
+            return f_i,ierr
+
+    #
+        for i in range(0,4):
+            f_temp[i] = f_im1[i] + deltar*df2[i]
+
+        df3, ierr=self.FUNDEQ(r_i, f_temp, irc, izone)
+        if (ierr != 0):
+            return f_i,ierr
+    #
+    #  Calculate the variables at the next shell (i + 1).
+    #
+        for i in range(0,4):
+            f_i[i] = f_im1[i] + dr16*(dfdr[i] + 2.0e0*df1[i] + 2.0e0*df2[i] + df3[i])
+
+        return f_i,0
+
+
+    # MAIN PROGRAM
     
     def main(self):
-
-        # PROGRAMA PRINCIPAL
-
-         # FORMATO PARA LA IMPRESIÓN DE MENSAJES
+         
+        # FORMATO PARA LA IMPRESIÓN DE MENSAJES
 
         def formato200():
             formato = """The variation in mass has become larger than 0.001*Ms leaving the approximation loop before Nstart was reached"""
@@ -226,7 +301,7 @@ class StellarStructure():
             Z    = {Z}                      epsilon     = {epscor} ergs/s/g
                                             dlnP/dlnT   = {dlpdlt}"""
             print(formato)
-
+ 
         def formato2500(Ms):
             formato = f"""Notes:
             (1) Mass is listed as Qm = 1.0 - M_r/Mtot, where Mtot = {Ms} g
@@ -348,7 +423,7 @@ class StellarStructure():
             self.epslon[initsh] = 0.0
             self.tog_bf[initsh] = 0.01
         else:
-            self.rho[initsh], self.kappa[initsh], self.epsilon[initsh], self.tog_bf[N], self.ierr = self.EOS(self.P[initsh], self.T[initsh], initsh)
+            self.rho[initsh], self.kappa[initsh], self.epsilon[initsh], self.tog_bf[initsh], self.ierr = self.EOS(self.P[initsh], self.T[initsh], initsh)
             if (self.ierr != 0):
                 print ("we're stopping now")
                 istop=0
@@ -394,18 +469,41 @@ class StellarStructure():
                 irc = 0
                 self.kPad = self.P[ip1]/self.T[ip1]**self.gamrat
 
-        # PROGRAMA PRINCIPAL
+            #  Test to see whether the surface assumption of constant mass is still valid.
 
+            deltaM = self.deltar*self.dMdr(self.r[ip1], self.rho[ip1])
+            self.M_r[ip1] = self.M_r[i] + deltaM
+            if (np.abs(deltaM) > (0.001e0*self.Ms)):
+                if (ip1 > 1):
+                    ip1 = ip1 - 1
+                    print(' The variation in mass has become larger than 0.001*Ms')
+                    print(' leaving the approximation loop before Nstart was reached')
+                    break
 
-        # if (self.P0 <= 0.0e0 or self.T0 <= 0.0e0):
-        #     self.rho[N] = 0.0e0
-        #     self.kappa[N]  = 0.0e0
-        #     self.epsilon[N] = 0.0e0
-        # else:
             
-        #     self.rho[N], self.kappa[N], self.epsilon[N], self.tog_bf[N], ierr = self.EOS(X, Z, XCNO, mu, P[initsh], T[initsh], 0 ,cst)self.EOS(self.P[N], self.T[N], self.rho[N], self.kappa[N],
-        #              self.epsilon[N], self.tog_bf, 1 , self.ierr)
-        #     if (self.ierr != 0):
+        Nsrtp1 = ip1 + 1
+
+        if (self.ierr != 0):    
+            # exit if we've arrived at this point after an error in initialization
+            Nstop=Nsrtp1-1
+            istop=Nstop
+
+        for i in range(Nsrtp1,Nstop):
+            im1 = i - 1
+            self.f_im1[0] = self.P[im1]
+            self.f_im1[1] = self.M_r[im1]
+            self.f_im1[2] = self.L_r[im1]
+            self.f_im1[3] = self.T[im1]
+            self.dfdr[0]  = self.dPdr(self.r[im1], self.M_r[im1], self.rho[im1])
+            self.dfdr[1] = self.dMdr(self.r[im1], self.rho[im1])
+            self.dfdr[2] = self.dLdr(self.r[im1], self.rho[im1], self.epsilon[im1])
+            self.dfdr[3] = self.dTdr(self.r[im1], self.M_r[im1], self.L_r[im1], self.T[im1], self.rho[im1], self.kappa[im1], irc)
+            f_i,ierr=self.RUNGE(self.f_im1, self.dfdr, self.r[im1], self.deltar, irc, i)
+
+            if (ierr != 0):
+                formato300()
+                formato400(self.r[im1], self.rho[im1], self.M_r[im1], self.kappa[im1], self.T[im1], self.epsilon[im1], self.P[im1], self.L_r[im1])
+                break
 
 
 
