@@ -1,3 +1,19 @@
+"""
+Se ha reescrito el código StatStar_python3.py a un nuevo código 
+empleando clases, con la finalidad de que el código sea un poco
+más oordenado y más limpio de usar cuando se quiere realizar 
+una gran cantidad de cálculos de diferentes estructuras estelares.
+
+Por: Jesús Loera
+
+"""
+
+# Encontré un poco confuso el código orginal pero al final pudo 
+# correr y replicar el código original, pienso seguir trabajando
+# en la limpieza de este código porque considero que tiene aún
+# un estilo muy "Fortran", cuando podría escribirse de una
+# manera más "Pythonica".
+
 
 """ Librerías """
 import numpy as np
@@ -8,7 +24,7 @@ import matplotlib.pyplot as plt
 
 class StellarStructure():
 
-    def __init__(self, Msolar, Lsolar, Te, X, Z, nsh=999):
+    def __init__(self, Msolar, Lsolar, Te, X, Z, filename, nsh=999):
 
  
         """ Constructor con los parámetros de la estrella """
@@ -21,6 +37,7 @@ class StellarStructure():
         self.Z = Z                # Fracción de metales (adimensional)
         self.Y = 1.0e0 - X - Z    # Fracción de helio (adimensional)
         self.nsh = nsh
+        self.filename = filename
 
         # Validamos las fracciones X y Z
         while((self.Y < 0)):
@@ -34,14 +51,14 @@ class StellarStructure():
     def initializeVariables(self):
 
         # Fracción de masa del ciclo CNO definida a 0.5*Z
-        self.XCNO = 0.5*self.Z
+        self.XCNO = self.Z/2.0e0
 
-        #  Calculate mean molecular weight mu assuming complete ionization
-        #  (see Eq. 10.21).
+        #  Calcula el peso molecular medio mu asumiendo una ionización completa
+        #  (vea Eq. 10.21).
         self.mu = 1.0e0/(2.0*self.X + 0.75*self.Y + 0.5*self.Z)
 
-        #  Calculate the delimiter between adiabatic convection and radiation
-        #  (see Eq. 10.87).
+        #  Calcula el delimitador entre convección adiabatica y radiación
+        #  (vea Eq. 10.87).
         self.gamrat = self.gamma/(self.gamma - 1.0e0)
 
         # Crearemos arreglos de tamaño (999)
@@ -71,7 +88,7 @@ class StellarStructure():
         # tog_bf = bound-free opacity constant (ratio of guillotine to gaunt factors)
         # g_ff = free-free opacity gaunt factor (assumed to be unity)
 
-        # initialize variables used for 4 structure equation derivatives
+        #inicializar variables utilizadas para 4 derivadas de ecuaciones de estructura
 
         self.f_im1=np.zeros(4,float)
         self.dfdr=np.zeros(4,float)
@@ -113,12 +130,12 @@ class StellarStructure():
               print(formato)
 
 
-        oneo3, twoo3 = 0.333333333e0, 0.666666667e0
+        oneo3=0.333333333e0
+        twoo3=0.666666667e0
 
-        if ((T <= 0.0e0) or (P <= 0.0e0)):
+        if ((T < 0.0e0) or (P < 0.0e0)):
             formato100(P, T, izone)
             return (0.0, 0.0, 0.0, 0.0, 1)
-
 
         Prad = self.a*T**4/3.0e0
         Pgas = P - Prad
@@ -162,7 +179,7 @@ class StellarStructure():
         M_rip1 = M_ri
         L_rip1 = L_ri
 
-        #  This is the radiative approximation (neglect radiation pressure
+        #  Esta es la aproximación radiativa (neglect radiation pressure
         #  and electron scattering opacity)# see Prialnik Eq. 5.1, 5.3 and Sec. 3.7 or C&O Eqs. (H.1), (H.2), (9.19),
         #  and (9.20).
 
@@ -172,29 +189,33 @@ class StellarStructure():
             A_ff = 3.68e22*self.g_ff*(1.0e0 - self.Z)*(1.0e0 + self.X)
             Afac = A_bf + A_ff
             P_ip1 = np.sqrt((1.0e0/4.25e0)*(16.0e0/3.0e0*np.pi*self.a*self.c)*(self.G*M_rip1/L_rip1)*(self.k_B/(Afac*self.mu*self.m_H)))*T_ip1**4.25e0
-        #  This is the convective approximation# see Prialnik Sec 6.5, 6.6 or C&O Eqs. (H.3) and (10.75).
+        # Esta es la aproximación convectiva
+        # see Prialnik Sec 6.5, 6.6 or C&O Eqs. (H.3) and (10.75).
         else:
             T_ip1 = self.G*M_rip1*self.mu*self.m_H/self.k_B*(1.0e0/r - 1.0e0/self.Rs)/self.gamrat
             P_ip1 = self.kPad*T_ip1**self.gamrat
 
         return r,P_ip1, M_rip1, L_rip1, T_ip1
 
-    #  The following four function subprograms calculate the gradients of pressure, mass, luminosity, and temperature at r.
+    #  Los siguientes cuatro métodos calculan los gradientes de presión, masa, luminosidad y temperatura en un radio r.
 
     def dPdr(self, r, M_r, rho):
         return -self.G*rho*M_r/r**2
     
     def dMdr(self, r, rho):
         return (4.0e0*np.pi*rho*r**2)
+    
+    def dLdr(self, r, rho, epsilon):
+      return (4.0e0*np.pi*rho*epsilon*r**2)
 
     def dTdr(self, r, M_r, L_r, T, rho, kappa, irc):
         if (irc == 0):
             return (-(3.0e0/(16.0e0*np.pi*self.a*self.c))*kappa*rho/T**3*L_r/r**2)
-        #  This is the adiabatic convective temperature gradient (Prialnik Eq. 6.29 or C&O Eq. 10.81).
+        # Este es el gradiente de temperatura convectiva adiabatica (Prialnik Eq. 6.29 or C&O Eq. 10.81).
         else:
             return (-1.0e0/self.gamrat*self.G*M_r/r**2*self.mu*self.m_H/self.k_B)
         
-    #      Subroutine FUNDEQ(r, f, irc, X, Z, XCNO, mu, izone,cst)
+    # Método FUNDEQ(r, f, irc, izone)
 
     def FUNDEQ(self, r, f, irc, izone):
 
@@ -212,7 +233,7 @@ class StellarStructure():
 
 
     #
-    # Runge-kutta algorithm
+    # Algoritmo de Runge-kutta
     #
     def RUNGE(self, f_im1, dfdr, r_im1, deltar, irc, izone):
 
@@ -224,8 +245,7 @@ class StellarStructure():
         r12  = r_im1 + dr12
         r_i  = r_im1 + deltar
 
-        #  Calculate intermediate derivatives from the four fundamental stellar
-        #  structure equations found in Subroutine FUNDEQ.
+        # Calcular derivadas intermedias a partir de las cuatro estelares fundamentales encontradas en el método FUNDEQ.
 
         for i in range(0,4):
             f_temp[i] = f_im1[i] + dr12*dfdr[i]
@@ -233,7 +253,6 @@ class StellarStructure():
         df1, ierr = self.FUNDEQ(r12, f_temp, irc, izone)
         if (ierr != 0):
             return f_i,ierr
-    #
 
         for i in range(0,4):
             f_temp[i] = f_im1[i] + dr12*df1[i]
@@ -243,23 +262,22 @@ class StellarStructure():
         if (ierr != 0):
             return f_i,ierr
 
-    #
         for i in range(0,4):
             f_temp[i] = f_im1[i] + deltar*df2[i]
 
         df3, ierr=self.FUNDEQ(r_i, f_temp, irc, izone)
         if (ierr != 0):
             return f_i,ierr
-    #
-    #  Calculate the variables at the next shell (i + 1).
-    #
+
+        # Calcula las variables en la siguiente capa (i + 1).
+
         for i in range(0,4):
             f_i[i] = f_im1[i] + dr16*(dfdr[i] + 2.0e0*df1[i] + 2.0e0*df2[i] + df3[i])
 
         return f_i,0
 
 
-    # MAIN PROGRAM
+    # Programa principal
     
     def main(self):
          
@@ -317,10 +335,6 @@ class StellarStructure():
             formato = """The number of allowed shells has been exceeded"""
             print(formato)
 
-        def formato5100():
-            formato = """"""
-            print(formato)
-
         def formato5200(rho, istop):
             formato = f"""The core density seems a bit off,density should increase smoothly toward the center.The density of the last zone calculated was rho = {rho} gm/cm**3"""
             print(formato) 
@@ -363,35 +377,35 @@ class StellarStructure():
             The model has been stored in starmodl.dat'"""
             print(formato)  
 
-        # Definicón del constantes
-        self.Rsun, self.Msun, self.Lsun = 6.9599e+10, 1.989e+33, 3.826e+33 
-        self.sigma, self.c, self.a =  5.67051e-5, 2.99792458e+10, 7.56591e-15
+        # Definición de constantes
+        self.Rsun, self.Msun, self.Lsun = 6.9599e10, 1.989e33, 3.826e33 
+        self.sigma, self.c, self.a =  5.67051e-5, 2.99792458e10, 7.56591e-15
         self.G, self.k_B, self.m_H = 6.67259e-8, 1.380658e-16, 1.673534e-24
-        self.pi, self.gamma = 3.141592654e0, 1.6666667e0
+        self.pi, self.gamma = 3.141592654e0, 5.0e0/3
         self.tog_bf0, self.g_ff = 0.01, 1.0e0
 
-        # deltar = radius integration step
-        # idrflg = set size flag
-        #        = 0 (initial surface step size of Rs/1000.)
-        #        = 1 (standard step size of Rs/100.)
-        #        = 2 (core step size of Rs/5000.)
+        # deltar = paso de integración para el radio
+        # idrflg = flag que define el tamaño del paso de integración
+        #        = 0 (tamaño de paso inical para la superficie de Rs/1000.)
+        #        = 1 (tamaño de paso estándar de Rs/100.)
+        #        = 2 (tamaño de paso para el núcleo de Rs/5000.)
         #  
-        # Nstart = number of steps for which starting equations are to be used
-        #          (the outermost zone is assumed to be radiative)
-        # Nstop = maximum number of allowed zones in the star
-        # Igoof = final model condition flag
-        #       = -1 (number of zones exceeded; also the initial value)
-        #       =  0 (good model)
-        #       =  1 (core density was extreme)
-        #       =  2 (core luminosity was extreme)
-        #       =  3 (extrapolated core temperature is too low)
-        #       =  4 (mass became negative before center was reached)
-        #       =  5 (luminosity became negative before center was reached)
-        # T0, P0 = surface temperature and pressure (T0 = P0 = 0 is assumed)
+        # Nstart = número de pasos para los que deben utilizarse ecuaciones de partida
+        #          (Se supone que la zona más externa es radiativa)
+        # Nstop = Número máximo de zonas permitidas en la estrella.
+        # Igoof = flag con la condición final del modelo
+        #       = -1 (número de zonas excedido; también el valor inicial)
+        #       =  0 (buen modelo)
+        #       =  1 (la densidad del núcleo es extrema)
+        #       =  2 (la luminosidad del núcleo es extrema)
+        #       =  3 (la temperatura extrapolada del núcleo es muy baja)
+        #       =  4 (la masa se volvió negativa antes de alcanzar el núcleo)
+        #       =  5 (la luminosidad se volció negativa antes de alcanzar el núcleo)
+        # T0, P0 = temperatura y presión en la superficie (se asume T0 = P0 = 0)
 
 
         # Parametros del modelo
-        self.Nstart, self.Nstop, self.igoof, self.ierr = 10, self.nsh, -1, 0
+        self.Nstart, self.Nstop, self.Igoof, self.ierr = 10, self.nsh, -1, 0
         self.P0, self.T0, self.dlPlim, self.debug = 0.0, 0.0, 99.9, 0 
 
 
@@ -402,9 +416,8 @@ class StellarStructure():
         self.Rs = np.sqrt(self.Ls/(4.e0*self.pi*self.sigma))/(self.Te**2)
         self.Rsolar = self.Rs/self.Rsun
 
-        #  Begin with a very small step size since surface conditions vary
-        #  rapidly.
-        #
+        #  Empezamos con un muy pequeño paso de integración débido a que las condiciones en la superficie varían muy rápido
+
         self.deltar = -self.Rs/1000.0e0
         self.idrflg = 0
 
@@ -420,7 +433,7 @@ class StellarStructure():
         if (self.P0 <= 0.0) or (self.T0 <= 0.0):
             self.rho[initsh]    = 0.0
             self.kappa[initsh]  = 0.0
-            self.epslon[initsh] = 0.0
+            self.epsilon[initsh] = 0.0
             self.tog_bf[initsh] = 0.01
         else:
             self.rho[initsh], self.kappa[initsh], self.epsilon[initsh], self.tog_bf[initsh], self.ierr = self.EOS(self.P[initsh], self.T[initsh], initsh)
@@ -428,11 +441,11 @@ class StellarStructure():
                 print ("we're stopping now")
                 istop=0
 
-        #  Apply approximate surface solutions to begin the integration,
-        #  assuming radiation transport in the outermost zone (the do 20 loop).
-        #  irc = 0 for radiation, irc = 1 for convection.
-        #  Assume arbitrary initial values for kPad, and dlPdlT.
-        #  dlPdlT = dlnP/dlnT (see Prialnik Eq. 6.28 or C&O Eq. 10.87)
+        # Aplicar soluciones superficiales aproximadas para comenzar la integración,
+        # suponiendo transporte de radiación en la zona más externa (el bucle do 20).
+        # irc = 0 para radiación, irc = 1 para convección.
+        # Supongamos valores iniciales arbitrarios para kPad y dlPdlT.
+        # dlPdlT = dlnP/dlnT (consulte la ecuación de Prialnik 6.28 o la ecuación de C&O 10.87)
 
         self.kPad = 0.3e0
         self.irc = 0
@@ -441,7 +454,7 @@ class StellarStructure():
 
             ip1 = i + 1
 
-            self.r[ip1], self.P[ip1], self.M_r[ip1], self.L_r[ip1], self.T[ip1]= self.STARTMDL(self.r[i], self.M_r[i], self.L_r[i], self.tog_bf[i], ip1)
+            self.r[ip1], self.P[ip1], self.M_r[ip1], self.L_r[ip1], self.T[ip1]= self.STARTMDL(self.r[i], self.M_r[i], self.L_r[i], self.tog_bf[i], self.irc)
 
             self.rho[ip1], self.kappa[ip1], self.epsilon[ip1], self.tog_bf[ip1],self.ierr = self.EOS(self.P[ip1], self.T[ip1], ip1)
 
@@ -454,9 +467,9 @@ class StellarStructure():
                 break                       
 
             
-            #  Determine whether convection will be operating in the next zone
-            #  calculating dlnP/dlnT numerically between zones i and i+1 [ip1].
-            #  Update the adiabatic gas constant if necessary. 
+            # Determinar si la convección funcionará en la siguiente zona
+            # calculando dlnP/dlnT numéricamente entre las zonas i e i+1 [ip1].
+            # Actualice la constante adiabática del gas si es necesario.
 
             if (i > initsh):
                 self.dlPdlT[ip1] = np.log(self.P[ip1]/self.P[i])/np.log(self.T[ip1]/self.T[i])
@@ -469,7 +482,7 @@ class StellarStructure():
                 irc = 0
                 self.kPad = self.P[ip1]/self.T[ip1]**self.gamrat
 
-            #  Test to see whether the surface assumption of constant mass is still valid.
+            # Pruebe para ver si la suposición masa constante en la superficie sigue siendo válido.
 
             deltaM = self.deltar*self.dMdr(self.r[ip1], self.rho[ip1])
             self.M_r[ip1] = self.M_r[i] + deltaM
@@ -484,11 +497,11 @@ class StellarStructure():
         Nsrtp1 = ip1 + 1
 
         if (self.ierr != 0):    
-            # exit if we've arrived at this point after an error in initialization
-            Nstop=Nsrtp1-1
-            istop=Nstop
+            # salir si hemos llegado a este punto después de un error en la inicialización
+            self.Nstop=Nsrtp1-1
+            istop=self.Nstop
 
-        for i in range(Nsrtp1,Nstop):
+        for i in range(Nsrtp1, self.Nstop):
             im1 = i - 1
             self.f_im1[0] = self.P[im1]
             self.f_im1[1] = self.M_r[im1]
@@ -505,6 +518,226 @@ class StellarStructure():
                 formato400(self.r[im1], self.rho[im1], self.M_r[im1], self.kappa[im1], self.T[im1], self.epsilon[im1], self.P[im1], self.L_r[im1])
                 break
 
+            # Actualizar los parámetros estelares para la siguiente zona, incluyendo la adición de dr al radio antiguo (nótese que dr < 0 ya que la integración es hacia el interior).
+
+            self.r[i]   = self.r[im1] + self.deltar
+            self.P[i]   = f_i[0]
+            self.M_r[i] = f_i[1]
+            self.L_r[i] = f_i[2]
+            self.T[i]   = f_i[3]
+
+            # Calcule la densidad, opacidad y tasa de generación de energía para esta zona.
+
+            self.rho[i], self.kappa[i], self.epsilon[i], self.tog_bf[i], self.ierr = self.EOS(self.P[i], self.T[i], i)
+
+            if (ierr != 0):
+                formato400(self.r[im1], self.rho[im1], self.M_r[im1], self.kappa[im1], self.T[im1], self.epsilon[im1], self.P[im1], self.L_r[im1])
+                istop = i
+                break
+
+            if (self.debug == 1): 
+                print (i, self.r[i], self.M_r[i], self.L_r[i], self.T[i], self.P[i], self.rho[i], self.kappa[i], self.epsilon[i], self.tog_bf[i])
+
+            # Determinar si la convección funcionará en la siguiente zona
+            # calculando dlnP/dlnT y comparándolo con gamma/(gamma-1)
+            # (consulte la ecuación de Prialnik 6.28 o la ecuación de C&O 10.87). Configure la bandera de convección apropiadamente.
+
+            self.dlPdlT[i] = np.log(self.P[i]/self.P[im1])/np.log(self.T[i]/self.T[im1])
+
+            if (self.dlPdlT[i] < self.gamrat):
+                irc = 1
+            else:
+                irc = 0
+
+            # Comprueba si se ha alcanzado el centro.  Si es así, establece Igoof y
+            # estimar las condiciones centrales rhocor, epscor, Pcore, y Tcore.
+            # La densidad central se estima que es la densidad media de la
+            # bola central restante, la presión central se determina
+            # utilizando la expansión de Taylor en el centro (Prialnik - Ejercicio. 5.1; CO Ec. H.4)
+            # y el valor central de la tasa de generación
+            # de generación de energía se calcula como la luminosidad interior restante
+            # luminosidad interior dividida por la masa de la bola central.  Finalmente, la # temperatura central se calcula
+            # temperatura central se calcula aplicando la ley de los gases ideales
+            # (despreciando la presión de radiación).
+
+            if ((self.r[i] <= np.abs(self.deltar)) and ((self.L_r[i] >= (0.1e0*self.Ls)) or (self.M_r[i] >= (0.01e0*self.Ms)))):
+                # Llega al centro antes de que se agote la masa/luminosidad
+                self.Igoof = 6
+            elif (self.L_r[i] <= 0.0e0):
+                # Obtenido luminosidad central negativa
+                self.Igoof = 5
+                # rho: expansión de taylor en el centro
+                rhocor = self.M_r[i]/(4.0e0/3.0e0*np.pi*self.r[i]**3)
+                if (self.M_r[i] != 0.0e0):
+                    # razón de generación de energía
+                    epscor = self.L_r[i]/self.M_r[i]
+                else:
+                    epscor = 0.0e0
+                    # P:  Expanxión de Taylor en el centro
+                    Pcore = self.P[i] + 2.0e0/3.0e0*np.pi*self.G*rhocor**2*self.r[i]**2
+                    # Se asume un gas ideal
+                    Tcore = Pcore*self.mu*self.m_H/(rhocor*self.k_B)
+            elif (self.M_r[i] <= 0.0e0):
+                self.Igoof  = 4  # El módelo tiene un hoyo en el centro (densidad negativa!)
+                rhocor = 0.0e0
+                epscor = 0.0e0
+                Pcore  = 0.0e0
+                Tcore  = 0.0e0
+            elif ((self.r[i] < (0.02e0*self.Rs)) and ((self.M_r[i] < (0.01e0*self.Ms)) and ((self.L_r[i] < 0.1e0*self.Ls)))):
+                #  if we've reached <2% star's radius,
+                #<1% mass enclosed and <10% luminosity then....
+                # rho: Taylor expansion at center
+                rhocor = self.M_r[i]/(4./3.*np.pi*self.r[i]**3)
+                # set maximum reasonable core mass
+                rhomax = 10.0e0*(self.rho[i]/self.rho[im1])*self.rho[i]
+                epscor = self.L_r[i]/self.M_r[i]
+                # P: Taylor expansion at center
+                Pcore  = self.P[i] + 2.0e0/3.0e0*np.pi*self.G*rhocor**2*self.r[i]**2
+                # Assume ideal gas
+                Tcore  = Pcore*self.mu*self.m_H/(rhocor*self.k_B)
+                # In general, these should all produce values
+                # that rise towards center (but not too high)
+                if ((rhocor < self.rho[i]) or (rhocor > rhomax)):
+                    # rho is off either large or small
+                    self.Igoof = 1
+                elif (epscor < self.epsilon[i]):
+                    # energy generation rate a bit off (low)
+                    self.Igoof = 2
+                elif (Tcore < self.T[i]):
+                    # Temperature a bit off (low)
+                    self.Igoof = 3
+                else:
+                    # number of allowed shells has been exceeded
+                    self.Igoof = 0
+
+            if (self.Igoof != -1):
+                istop = i
+                break
+
+            #  Is it time to change the step size?
+
+            if ((self.idrflg == 0) and (self.M_r[i] < (0.99e0*self.Ms))):
+               self.deltar = (-1.0)*self.Rs/100.0e0
+               self.idrflg = 1
+
+            if ((self.idrflg == 1) and (self.deltar >= (0.5*self.r[i]))):
+                self.deltar = (-1.0)*self.Rs/5000.0e0
+                self.idrflg = 2
+
+            istop = i
+
+        #  Generate warning messages for the central conditions.
+
+        rhocor = self.M_r[istop]/(4.0e0/3.0e0*np.pi*self.r[istop]**3)
+        epscor = self.L_r[istop]/self.M_r[istop]
+        Pcore  = self.P[istop] + 2.0e0/3.0e0*np.pi*self.G*rhocor**2*self.r[istop]**2
+        Tcore  = Pcore*self.mu*self.m_H/(rhocor*self.k_B)
+
+        if  (self.Igoof != 0):
+            if (self.Igoof == -1):
+                formato4000()
+                formato5000()
+
+            if (self.Igoof == 1):
+                formato6000()
+                formato5200(self.rho[istop], istop)
+                print (rhocor,rhomax)
+
+            if (rhocor > 1e10):
+                formato5300()
+
+            if (self.Igoof == 2):
+                formato6000()
+                formato5400(self.epsilon[istop], istop)
+
+            if (self.Igoof == 3):
+                formato6000()
+                formato5500(self.T[istop], istop)
+
+            if (self.Igoof == 4):
+                formato4000()
+                formato5600()
+
+            if (self.Igoof == 5):
+                formato4000()
+                formato5700()
+
+            if (self.Igoof == 6):
+                formato4000()
+                formato5800()
+        else:
+            formato7000()
+
+        #  Print the central conditions.  If necessary, set limits for the
+        #  central radius, mass, and luminosity if necessary, to avoid format
+        #  field overflows.
+
+        Rcrat = self.r[istop]/self.Rs
+        if (Rcrat < -9.999e0): 
+            Rcrat = -9.999e0
+        
+        Mcrat = self.M_r[istop]/self.Ms
+        if (Mcrat < -9.999e0): 
+            Mcrat = -9.999e0
+        
+        Lcrat = self.L_r[istop]/self.Ls
+        if (Lcrat < -9.999e0): 
+            Lcrat = -9.999e0
+
+        f=open(self.filename, 'w')
+
+        f.write('A Homogeneous Main-Sequence Model\n')
+        f.write(' The surface conditions are:        The central conditions are:\n')
+        f.write(' Mtot = {0:13.6E} Msun          Mc/Mtot     = {1:12.5E}\n'.format(self.Msolar,Mcrat))
+        f.write(' Rtot = {0:13.6E} Rsun          Rc/Rtot     = {1:12.5E}\n'.format(self.Rsolar,Rcrat))
+        f.write(' Ltot = {0:13.6E} Lsun          Lc/Ltot     = {1:12.5E}\n'.format(self.Lsolar,Lcrat))
+        f.write(' Teff = {0:13.6E} K             Density     = {1:12.5E}\n'.format(self.Te,rhocor))
+        f.write(' X    = {0:13.6E}               Temperature = {1:12.5E}\n'.format(self.X,Tcore))
+        f.write(' Y    = {0:13.6E}               Pressure    = {1:12.5E} dynes/cm**2\n'.format(self.Y,Pcore))
+        f.write(' Z    = {0:13.6E}               epsilon     = {1:12.5E} ergs/s/g\n'.format(self.Z,epscor))
+        f.write('                                    dlnP/dlnT   = {0:12.5E}\n'.format(self.dlPdlT[istop]))
+
+        f.write('Notes:\n')
+        f.write(' (1) Mass is listed as Qm = 1.0 - M_r/Mtot, where Mtot = {0:13.6}\n'.format(self.Msun))
+        f.write(' (2) Convective zones are indicated by c, radiative zones by r\n')
+        f.write(' (3) dlnP/dlnT may be limited to +99.9 or -99.9# if so it is\n')
+        f.write(' labeled by *\n')
+
+        #  Print data from the center of the star outward, labeling convective
+        #   or radiative zones by c or r, respectively.  If abs(dlnP/dlnT)
+        #  exceeds 99.9, set a print warning flag (*) and set the output limit
+        #  to +99.9 or -99.9 as appropriate to avoid format field overflows.
+
+        f.write('   r        Qm       L_r       T        P        rho      kap      eps     dlPdlT\n')
+
+        for ic in range(0,istop+1):
+            i = istop - ic
+            Qm = 1.0e0 - self.M_r[i]/self.Ms    # Total mass fraction down to radius
 
 
-star = StellarStructure(1, 1, 6000, 0.9,  18)
+            if (self.dlPdlT[i] < self.gamrat):
+                rcf = 'c'
+            else:
+                rcf = 'r'
+            if (np.abs(self.dlPdlT[i]) > self.dlPlim):
+                self.dlPdlT[i] = np.copysign(self.dlPlim, self.dlPdlT[i])
+                clim = '*'
+            else:
+                clim = ' '
+            s='{0:7.2E} {1:7.2E} {2:7.2E} {3:7.2E} {4:7.2E} {5:7.2E} {6:7.2E} {7:6.2E}{8:1s}{9:1s} {10:5.1f}\n'.format(self.r[i], Qm, self.L_r[i], self.T[i], self.P[i], self.rho[i], self.kappa[i], self.epsilon[i], clim, rcf, self.dlPdlT[i])
+            f.write(s)
+
+        # Output to screen
+
+        formato9000()
+
+        return self.Igoof,ierr,istop
+    
+Msolar = 0.75
+Lsolar = 0.189
+Te = 3788.5
+X = 0.7
+Z = 0.008
+filename = "star1.dat"
+star1 = StellarStructure(Msolar, Lsolar, Te, X, Z, filename)
+star1.main()

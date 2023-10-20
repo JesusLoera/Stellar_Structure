@@ -94,6 +94,8 @@ def   EOS(X, Z, XCNO, mu, P, T,izone,cst):
       Prad = cst.a*T**4/3.0e0
       Pgas = P - Prad
       rho=(mu*cst.m_H/cst.k_B)*(Pgas/T)
+      print(f"rho={rho}")
+
       if (rho < 0.0e0):
           print(' I am sorry, but a negative density was detected.')
           print(' my equation-of-state routine is a bit baffled by this new')
@@ -644,7 +646,8 @@ def StatStar(Msolar,Lsolar,Te,X,Z):
 
 #
 #  Generate warning messages for the central conditions.
-#
+#     
+      print("el valor de istop es:", istop)  
       rhocor = M_r[istop]/(4.0e0/3.0e0*np.pi*r[istop]**3)
       epscor = L_r[istop]/M_r[istop]
       Pcore  = P[istop] + 2.0e0/3.0e0*np.pi*cst.G*rhocor**2*r[istop]**2
