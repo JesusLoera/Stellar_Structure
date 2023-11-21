@@ -1,4 +1,8 @@
 """
+
+Este programa es una versión modificada escrita en Python del código
+StatStar escrito en Fortran por Carrol y Ostlie.
+
 Se ha reescrito el código StatStar_python3.py a un nuevo código 
 empleando clases, con la finalidad de que el código sea un poco
 más oordenado y más limpio de usar cuando se quiere realizar 
