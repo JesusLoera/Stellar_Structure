@@ -46,7 +46,8 @@ class StellarStructure():
             self.Z = float(input(' Enter the mass fraction of metals (Z): '))
             self.Y = 1.e0 - self.X - self.Z
 
-       
+        self.main()
+
 
     def initializeVariables(self):
 
@@ -732,12 +733,28 @@ class StellarStructure():
         formato9000()
 
         return self.Igoof,ierr,istop
+
+    def exportToCSV(self):
+
+        file = self.filename
+
+        def find_header(file):
+            with open(file, "r",encoding="utf-8") as file:
+                rows = [row for row in file]
+                for count, row in enumerate(rows):
+                    if (('r' in row)   and
+                        ('Qm' in row)  and 
+                        ('L_r' in row) and 
+                        ('T' in row)   and
+                        ('dlPdlT' in row)):
+                        count = count +1
+                        return count
+                    
+        columns = ['r', 'Qm', 'L_r', 'T', 'P', 'rho', 
+                   'kap', 'eps', 'zone', 'dlPdlT']
+        
+        self.df = pd.read_csv(file, skiprows=find_header(file),
+                           sep='\s+', names=columns)
+        
+        return self.df
     
-Msolar = 0.75
-Lsolar = 0.189
-Te = 3788.5
-X = 0.7
-Z = 0.008
-filename = "star1.dat"
-star1 = StellarStructure(Msolar, Lsolar, Te, X, Z, filename)
-star1.main()
